@@ -661,15 +661,15 @@ function icon(paths){
 
 /* ---------- portfolio data (casos reais de clientes Nex Realidade) ---------- */
 const cases = [
-  {sector:"Logística & Encomendas", cls:"g1", name:"Send Connection Express — pacote GROWTH", challenge:"Marca de envios entre Angola, Portugal e Brasil a precisar de presença consistente nas redes sociais.", solution:"Gestão de Facebook/Instagram, calendário editorial e anúncios segmentados.", r1:["+15%","Crescimento no período"], r2:["GROWTH","Pacote contratado"]},
-  {sector:"Beleza & Estética", cls:"g2", name:"Tranças da Cris — pacote SALES", challenge:"Salão de beleza a precisar de converter contactos em marcações através do digital.", solution:"Funil de vendas via WhatsApp Business e estratégia de conversão.", r1:["+10%","Crescimento no período"], r2:["SALES","Pacote contratado"]},
-  {sector:"E-commerce", cls:"g3", name:"Baratinho Store — pacote PERFORMANCE", challenge:"Loja online de moda e perfumes a precisar de medir e otimizar campanhas.", solution:"Configuração de métricas, relatórios e reuniões mensais de otimização.", r1:["+25%","Crescimento no período"], r2:["PERFORMANCE","Pacote contratado"]},
-  {sector:"Manutenção & Reparação", cls:"g5", name:"Soluções Climáticas SCLI Cabinda — pacote SALES", challenge:"Empresa de refrigeração, instalações elétricas, pintura predial e canalização a precisar de converter contactos em clientes.", solution:"Funil de vendas via WhatsApp Business e estratégia de conversão.", r1:["+25%","Crescimento no período"], r2:["SALES","Pacote contratado"]},
-  {sector:"Imobiliário", cls:"g6", name:"ImoBiliária — pacote PERFORMANCE", challenge:"Imobiliária a precisar de medir e otimizar o desempenho das suas campanhas digitais.", solution:"Configuração de métricas, relatórios e reuniões mensais de otimização.", r1:["+40%","Crescimento no período"], r2:["PERFORMANCE","Pacote contratado"]},
+  {sector:"Logística & Encomendas", cls:"g1", img:"assets/portfolio/send-connection.jpg", name:"Send Connection Express — pacote GROWTH", challenge:"Marca de envios entre Angola, Portugal e Brasil a precisar de presença consistente nas redes sociais.", solution:"Gestão de Facebook/Instagram, calendário editorial e anúncios segmentados.", r1:["+15%","Crescimento no período"], r2:["GROWTH","Pacote contratado"]},
+  {sector:"Beleza & Estética", cls:"g2", img:"assets/portfolio/trancas-da-cris.jpg", name:"Tranças da Cris — pacote SALES", challenge:"Salão de beleza a precisar de converter contactos em marcações através do digital.", solution:"Funil de vendas via WhatsApp Business e estratégia de conversão.", r1:["+10%","Crescimento no período"], r2:["SALES","Pacote contratado"]},
+  {sector:"E-commerce", cls:"g3", img:"assets/portfolio/baratinho-store.jpg", name:"Baratinho Store — pacote PERFORMANCE", challenge:"Loja online de moda e perfumes a precisar de medir e otimizar campanhas.", solution:"Configuração de métricas, relatórios e reuniões mensais de otimização.", r1:["+25%","Crescimento no período"], r2:["PERFORMANCE","Pacote contratado"]},
+  {sector:"Manutenção & Reparação", cls:"g5", img:"assets/portfolio/scli-cabinda.jpg", name:"Soluções Climáticas SCLI Cabinda — pacote SALES", challenge:"Empresa de refrigeração, instalações elétricas, pintura predial e canalização a precisar de converter contactos em clientes.", solution:"Funil de vendas via WhatsApp Business e estratégia de conversão.", r1:["+25%","Crescimento no período"], r2:["SALES","Pacote contratado"]},
+  {sector:"Imobiliário", cls:"g6", img:"assets/portfolio/imobiliaria.jpg", name:"ImoBiliária — pacote PERFORMANCE", challenge:"Imobiliária a precisar de medir e otimizar o desempenho das suas campanhas digitais.", solution:"Configuração de métricas, relatórios e reuniões mensais de otimização.", r1:["+40%","Crescimento no período"], r2:["PERFORMANCE","Pacote contratado"]},
 ];
 document.getElementById('portfolioGrid').innerHTML = cases.map(c=>`
   <div class="case-card">
-    <div class="case-thumb"><div class="${c.cls}"></div><span class="case-sector">${c.sector}</span></div>
+    <div class="case-thumb"><img src="${c.img}" alt="${c.name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;"><span class="case-sector">${c.sector}</span></div>
     <div class="case-body">
       <h4>${c.name}</h4>
       <div class="case-row"><b>Desafio</b><span>${c.challenge}</span></div>
@@ -722,10 +722,48 @@ document.getElementById('blogGrid').innerHTML = posts.map(p=>`
       <span class="blog-cat">${p.cat}</span>
       <h4>${p.title}</h4>
       <p>${p.d}</p>
-      <span class="blog-meta">${p.meta}</span>
-    </div>
-  </a>
 `).join('');
+
+/* ---------- rastreio inteligente de jornada + mensagem automática no WhatsApp ---------- */
+(function(){
+  const PAGE_NAME = "Portfólio";
+  try{
+    let journey = JSON.parse(sessionStorage.getItem('nex_journey')||'[]');
+    if(journey[journey.length-1] !== PAGE_NAME) journey.push(PAGE_NAME);
+    if(journey.length>8) journey = journey.slice(-8);
+    sessionStorage.setItem('nex_journey', JSON.stringify(journey));
+  }catch(e){}
+  function buildMessage(pkg){
+    let journey = [];
+    try{ journey = JSON.parse(sessionStorage.getItem('nex_journey')||'[]'); }catch(e){}
+    let msg = "Olá Nex Realidade! Vim do vosso site.";
+    if(journey.length) msg += "\nPáginas visitadas: " + journey.join(" → ");
+    if(pkg) msg += "\nPacote de interesse: " + pkg;
+    msg += "\nGostava de saber mais.";
+    return msg;
+  }
+  document.querySelectorAll('a[href*="wa.me"]').forEach(a=>{
+    a.addEventListener('click', function(){
+      const pkg = a.getAttribute('data-package') || null;
+      const base = a.href.split('?')[0];
+      a.href = base + "?text=" + encodeURIComponent(buildMessage(pkg));
+    });
+  });
+})();
+
+/* ---------- contagem de visitas + vendas via WhatsApp (partilhado com index.html) ---------- */
+(function(){
+  const NS = "nexrealidade-oficial";
+  if(!sessionStorage.getItem('nex_visit_counted')){
+    fetch(`https://api.countapi.xyz/hit/${NS}/visitantes_total`).catch(()=>{});
+    sessionStorage.setItem('nex_visit_counted','1');
+  }
+  document.querySelectorAll('a[href*="wa.me"]').forEach(a=>{
+    a.addEventListener('click', function(){
+      fetch(`https://api.countapi.xyz/hit/${NS}/vendas_whatsapp`).catch(()=>{});
+    });
+  });
+})();
 
 </script>
 </body>

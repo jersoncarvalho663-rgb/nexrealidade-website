@@ -697,7 +697,7 @@ document.getElementById('servicesGrid').innerHTML = packages.map(p=>`
     <div class="pkg-price"><strong>${p.price}</strong><span>${p.unit}</span></div>
     <ul class="pkg-list">${p.items.map(it=>`<li>${checkIcon}<span>${it}</span></li>`).join('')}</ul>
     ${p.problems.length?`<div class="pkg-problems"><div class="pkg-problems-label">Problemas que resolve</div><div class="pkg-tags">${p.problems.map(pr=>`<span>${pr}</span>`).join('')}</div></div>`:''}
-    <a href="https://wa.me/244928746043" target="_blank" rel="noopener" class="btn btn-ghost btn-sm pkg-cta">Escolher ${p.t.split(' ')[0]}</a>
+    <a href="https://wa.me/244928746043" target="_blank" rel="noopener" class="btn btn-ghost btn-sm pkg-cta" data-package="${p.t}">Escolher ${p.t.split(' ')[0]}</a>
   </div>
 `).join('');
 
@@ -723,6 +723,47 @@ document.querySelectorAll('.faq-item').forEach(item=>{
     if(!wasOpen) item.classList.add('open');
   });
 });
+
+/* ---------- rastreio inteligente de jornada + mensagem automática no WhatsApp ---------- */
+(function(){
+  const PAGE_NAME = "Pacotes";
+  try{
+    let journey = JSON.parse(sessionStorage.getItem('nex_journey')||'[]');
+    if(journey[journey.length-1] !== PAGE_NAME) journey.push(PAGE_NAME);
+    if(journey.length>8) journey = journey.slice(-8);
+    sessionStorage.setItem('nex_journey', JSON.stringify(journey));
+  }catch(e){}
+  function buildMessage(pkg){
+    let journey = [];
+    try{ journey = JSON.parse(sessionStorage.getItem('nex_journey')||'[]'); }catch(e){}
+    let msg = "Olá Nex Realidade! Vim do vosso site.";
+    if(journey.length) msg += "\nPáginas visitadas: " + journey.join(" → ");
+    if(pkg) msg += "\nPacote de interesse: " + pkg;
+    msg += "\nGostava de saber mais.";
+    return msg;
+  }
+  document.querySelectorAll('a[href*="wa.me"]').forEach(a=>{
+    a.addEventListener('click', function(){
+      const pkg = a.getAttribute('data-package') || null;
+      const base = a.href.split('?')[0];
+      a.href = base + "?text=" + encodeURIComponent(buildMessage(pkg));
+    });
+  });
+})();
+
+/* ---------- contagem de visitas + vendas via WhatsApp (partilhado com index.html) ---------- */
+(function(){
+  const NS = "nexrealidade-oficial";
+  if(!sessionStorage.getItem('nex_visit_counted')){
+    fetch(`https://api.countapi.xyz/hit/${NS}/visitantes_total`).catch(()=>{});
+    sessionStorage.setItem('nex_visit_counted','1');
+  }
+  document.querySelectorAll('a[href*="wa.me"]').forEach(a=>{
+    a.addEventListener('click', function(){
+      fetch(`https://api.countapi.xyz/hit/${NS}/vendas_whatsapp`).catch(()=>{});
+    });
+  });
+})();
 
 </script>
 </body>

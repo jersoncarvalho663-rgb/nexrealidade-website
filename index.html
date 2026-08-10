@@ -210,7 +210,7 @@
   .divider-line{height:1px;background:linear-gradient(90deg,transparent,var(--border-strong),transparent);}
 
   .stats{padding:70px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
-  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;}
+  .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:20px;}
   .stat-item{text-align:left;padding-right:20px;}
   .stat-num{font-family:'Space Grotesk';font-size:clamp(30px,3.6vw,44px);font-weight:600;
     background:linear-gradient(120deg,var(--text),var(--text) 60%,var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent;}
@@ -472,6 +472,14 @@
 <main id="top">
 
   <!-- HERO -->
+  <div class="wrap" style="padding-top:14px;">
+    <div id="liveVisitors" style="display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-2);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:6px 14px;">
+      <span style="width:7px;height:7px;border-radius:50%;background:#2ecc71;display:inline-block;animation:pulseDot 1.6s infinite;"></span>
+      <span id="liveVisitorsText">A contar visitas…</span>
+    </div>
+  </div>
+  <style>@keyframes pulseDot{0%,100%{opacity:1;}50%{opacity:.35;}}</style>
+
   <section class="hero wrap">
     <div class="hero-copy reveal in">
       <span class="eyebrow">Marketing Digital &amp; Consultoria</span>
@@ -521,6 +529,7 @@
       <div class="stat-item"><div class="stat-num" data-count="4">0</div><div class="stat-label">Marcas parceiras</div></div>
       <div class="stat-item"><div class="stat-num" data-count="2" data-suffix="M Kz">0</div><div class="stat-label">Gerados para clientes</div></div>
       <div class="stat-item"><div class="stat-num" data-count="70" data-suffix="%">0</div><div class="stat-label">Taxa de conversão</div></div>
+      <div class="stat-item"><div class="stat-num" id="statVendas">—</div><div class="stat-label">Contactos via WhatsApp</div></div>
     </div>
   </section>
 
@@ -544,10 +553,14 @@
         <p class="lead">A Nex Realidade nasceu para encurtar a distância entre onde a sua empresa está e onde ela deveria estar. Trabalhamos lado a lado com quem decide, traduzindo estratégia em execução e execução em números que se defendem em qualquer reunião.</p>
         <p>Seguimos sempre a mesma metodologia — as nossas 6 fases, de Descoberta a Crescimento — mas a execução, os canais e as prioridades são sempre desenhados à medida do seu negócio. Um processo previsível, nunca um resultado copiado de outro cliente.</p>
         <div class="about-values">
-          <div class="value-card"><h4>Missão</h4><p>Tornar o crescimento previsível através de estratégia, dados e tecnologia aplicados com disciplina.</p></div>
-          <div class="value-card"><h4>Visão</h4><p>Ser a referência em marketing e consultoria para empresas que querem liderar, não apenas competir.</p></div>
+          <div class="value-card"><h4>Missão</h4><p>Transformar ideias em realidade digital, utilizando estratégias de marketing e tecnologia para ajudar empresas a crescer, fortalecer a sua presença no mercado e alcançar resultados mensuráveis.</p></div>
+          <div class="value-card"><h4>Visão</h4><p>Ser a agência de marketing digital e consultoria estratégica mais reconhecida em Angola, pela capacidade de transformar negócios através da inovação, da tecnologia e da excelência na execução — a principal parceira de crescimento das empresas africanas.</p></div>
           <div class="value-card"><h4>Valores</h4><p>Transparência, resultados mensuráveis e acompanhamento próximo em cada fase do projeto.</p></div>
           <div class="value-card"><h4>Abordagem</h4><p>Uma metodologia única, aplicada de forma personalizada — a mesma estrutura, mas nunca a mesma execução.</p></div>
+        </div>
+        <div class="value-card" style="margin-top:18px;">
+          <h4>Posicionamento de marca</h4>
+          <p>Para empresas que recusam ficar para trás e procuram acelerar o seu crescimento através do digital, a Nex Realidade é a parceira estratégica que integra marketing, tecnologia e execução para transformar desafios em resultados mensuráveis e crescimento sustentável.</p>
         </div>
       </div>
     </div>
@@ -765,6 +778,74 @@ const whys = [
 document.getElementById('whyGrid').innerHTML = whys.map(w=>`
   <div class="why-card">${w.i}<h4>${w.t}</h4><p>${w.d}</p></div>
 `).join('');
+
+/* ---------- rastreio inteligente de jornada + mensagem automática no WhatsApp ---------- */
+(function(){
+  const PAGE_NAME = "Início";
+  try{
+    let journey = JSON.parse(sessionStorage.getItem('nex_journey')||'[]');
+    if(journey[journey.length-1] !== PAGE_NAME) journey.push(PAGE_NAME);
+    if(journey.length>8) journey = journey.slice(-8);
+    sessionStorage.setItem('nex_journey', JSON.stringify(journey));
+  }catch(e){}
+  function buildMessage(pkg){
+    let journey = [];
+    try{ journey = JSON.parse(sessionStorage.getItem('nex_journey')||'[]'); }catch(e){}
+    let msg = "Olá Nex Realidade! Vim do vosso site.";
+    if(journey.length) msg += "\nPáginas visitadas: " + journey.join(" → ");
+    if(pkg) msg += "\nPacote de interesse: " + pkg;
+    msg += "\nGostava de saber mais.";
+    return msg;
+  }
+  document.querySelectorAll('a[href*="wa.me"]').forEach(a=>{
+    a.addEventListener('click', function(){
+      const pkg = a.getAttribute('data-package') || null;
+      const base = a.href.split('?')[0];
+      a.href = base + "?text=" + encodeURIComponent(buildMessage(pkg));
+    });
+  });
+})();
+
+/* ---------- contador de visitantes + vendas automáticas (via WhatsApp) ---------- */
+(function(){
+  const NS = "nexrealidade-oficial";
+  const visitEl = document.getElementById('liveVisitorsText');
+  const vendasEl = document.getElementById('statVendas');
+
+  async function countVisit(){
+    try{
+      let key = "visitantes_total";
+      if(!sessionStorage.getItem('nex_visit_counted')){
+        const r = await fetch(`https://api.countapi.xyz/hit/${NS}/${key}`);
+        const d = await r.json();
+        sessionStorage.setItem('nex_visit_counted','1');
+        if(visitEl) visitEl.textContent = d.value.toLocaleString('pt-PT') + " visitas ao site";
+      } else {
+        const r = await fetch(`https://api.countapi.xyz/get/${NS}/${key}`);
+        const d = await r.json();
+        if(visitEl) visitEl.textContent = (d.value||0).toLocaleString('pt-PT') + " visitas ao site";
+      }
+    }catch(e){ if(visitEl) visitEl.textContent = "Bem-vindo ao nosso site"; }
+  }
+  async function refreshVendas(){
+    try{
+      const r = await fetch(`https://api.countapi.xyz/get/${NS}/vendas_whatsapp`);
+      const d = await r.json();
+      if(vendasEl) vendasEl.textContent = (d.value||0).toLocaleString('pt-PT');
+    }catch(e){ if(vendasEl) vendasEl.textContent = "—"; }
+  }
+  countVisit();
+  refreshVendas();
+  setInterval(()=>{ countVisit(); refreshVendas(); }, 30000);
+
+  document.querySelectorAll('a[href*="wa.me"]').forEach(a=>{
+    a.addEventListener('click', function(){
+      fetch(`https://api.countapi.xyz/hit/${NS}/vendas_whatsapp`).then(r=>r.json()).then(d=>{
+        if(vendasEl) vendasEl.textContent = (d.value||0).toLocaleString('pt-PT');
+      }).catch(()=>{});
+    });
+  });
+})();
 
 </script>
 </body>
